@@ -29,15 +29,9 @@
 body {
   margin: 0;
 }
-
 h1 {
   font-size: 24px;
   margin: 0;
-  color: var(--text-h);
-}
-h2 {
-  font-size: 20px;
-  margin: 2px 0;
   color: var(--text-h);
 }
 p {
@@ -49,129 +43,4 @@ a {
 .dim {
   font-size: 13px;
   color: var(--text);
-}
-
-/* fixed layout — the deck screen doesn't resize */
-main {
-  display: flex;
-  gap: 28px;
-  width: 900px;
-  margin: 48px auto;
-  padding: 0 24px;
-  box-sizing: border-box;
-}
-.region {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-.tag {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text);
-}
-.placement {
-  width: 120px;
-  height: 80px;
-  color: var(--border);
-}
-
-/* ---- DeviceUI ---- */
-.device {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--panel);
-  padding: 20px;
-}
-.device .eyebrow {
-  font-size: 11px;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--text);
-}
-.device .row {
-  display: flex;
-  gap: 8px;
-  margin-top: 12px;
-}
-.badge {
-  padding: 3px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  background: var(--border);
-  color: var(--text-h);
-}
-.badge.live {
-  background: var(--accent-bg);
-  color: var(--accent);
-}
-.platter {
-  width: 120px;
-  height: 120px;
-  margin: 18px auto 0;
-  border-radius: 50%;
-  background: repeating-radial-gradient(circle, #111 0 2px, #1c1c1c 2px 4px);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.platter.spin {
-  animation: spin 1.8s linear infinite;
-}
-.platter .hole {
-  width: 12px;
-  height: 12px;
-  border-radius: 50%;
-  background: var(--bg);
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-/* ---- TestPanel ---- */
-.panel {
-  border: 1px solid var(--border);
-  border-radius: 14px;
-  background: var(--panel);
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-.panel .info {
-  align-self: flex-start;
-  padding: 6px 10px;
-  border: 1px solid var(--accent);
-  border-radius: 8px;
-  background: var(--accent-bg);
-  color: var(--accent);
-  font: inherit;
-  cursor: pointer;
-}
-.panel .help {
-  margin: 0;
-  padding-left: 18px;
-  font-size: 13px;
-}
-.panel .sim {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-  margin-top: 4px;
-}
-.panel .sim button {
-  padding: 8px 12px;
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  background: var(--bg);
-  color: var(--text-h);
-  font: inherit;
-  cursor: pointer;
-}
-.panel .sim button:hover {
-  border-color: var(--accent);
 }

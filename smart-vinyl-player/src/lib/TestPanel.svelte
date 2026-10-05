@@ -1,31 +1,155 @@
 <script>
-  // Project info + buttons to simulate using the turntable.
-  let { onTogglePlay, onNextTrack, onCycleSpeed } = $props()
+  // Project info + controls that stand in for physically using the player.
+  import { player, MODES, setVolume, setMode, reachForTonearm } from './player.svelte.js'
+  import { profiles } from './scenarios.js'
+  import ModeIcon from './ModeIcon.svelte'
+
   let showInfo = $state(false)
 </script>
 
 <div class="panel">
   <h1>Smart Vinyl Player</h1>
-  <p class="dim">by Sai Porumamilla &middot; <a href="#">Project write-up</a></p>
-  <p>
-    A turntable that shows the record and track it's playing and lets you pick a
-    track by name. Buttons below stand in for physically using it.
-  </p>
+  <p class="dim">by Sai Porumamilla · <a href="https://github.com/sai-porumamilla/UI-Project_1" target="_blank" rel="noreferrer">Project write-up</a></p>
+  <p>A turntable with a front touchscreen, two physical knobs, and sensors that watch its health. A companion app shows that health and your collection.</p>
 
-  <button class="info" onclick={() => (showInfo = !showInfo)}>
-    &#9432; How the controls work
-  </button>
+  <button class="info" onclick={() => (showInfo = !showInfo)} aria-expanded={showInfo}>ⓘ How the simulation works</button>
   {#if showInfo}
     <ul class="help">
-      <li><strong>Play / Pause</strong> — drop or lift the tonearm.</li>
-      <li><strong>Next track</strong> — move the tonearm to the next track.</li>
-      <li><strong>Change speed</strong> — cycle 33 / 45 / 78 RPM.</li>
+      <li><b>Display & phone</b>: tap them like the real thing. They share one player, so playing from the phone shows up on the display.</li>
+      <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter.</li>
+      <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode.</li>
+      <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
+      <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>
+      <li>Leave the Now Playing screen untouched for 8 s and it fades to the album art.</li>
     </ul>
   {/if}
 
-  <div class="sim">
-    <button onclick={onTogglePlay}>Play / Pause</button>
-    <button onclick={onNextTrack}>Next track</button>
-    <button onclick={onCycleSpeed}>Change speed</button>
+  <h2>Physical controls</h2>
+  <label class="knob">
+    <span>Volume knob <b>{player.volume}</b></span>
+    <input type="range" min="0" max="100" value={player.volume} oninput={(e) => setVolume(+e.currentTarget.value)} />
+  </label>
+
+  <span class="label">Mode knob</span>
+  <div class="modes" role="radiogroup" aria-label="Mode knob">
+    {#each MODES as m, i}
+      <button role="radio" aria-checked={player.mode === i} class:on={player.mode === i} onclick={() => setMode(i)}>
+        <ModeIcon id={m.id} size={20} />{m.label}
+      </button>
+    {/each}
+  </div>
+
+  <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>
+  {#if !player.playing}<p class="dim">Start a song first. The warning only shows while the needle is down.</p>{/if}
+
+  <h2>Owner profile</h2>
+  <div class="profiles">
+    {#each profiles as p, i}
+      <button class:on={player.profile === i} onclick={() => (player.profile = i)}>
+        <b>{p.name}</b><span>{p.blurb}</span>
+      </button>
+    {/each}
   </div>
 </div>
+
+<style>
+  .panel {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 20px;
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    background: var(--panel);
+  }
+  h2 {
+    margin: 14px 0 2px;
+    font-size: 13px;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--text);
+  }
+  button {
+    font: inherit;
+    color: var(--text-h);
+    cursor: pointer;
+  }
+  .info {
+    align-self: flex-start;
+    padding: 6px 10px;
+    border: 1px solid var(--accent);
+    border-radius: 8px;
+    background: var(--accent-bg);
+    color: var(--accent);
+  }
+  .help {
+    margin: 0;
+    padding-left: 18px;
+    font-size: 13px;
+  }
+  .help li {
+    margin: 4px 0;
+  }
+  .knob {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    font-size: 14px;
+    color: var(--text-h);
+  }
+  .knob input {
+    accent-color: var(--accent);
+  }
+  .label {
+    font-size: 14px;
+    color: var(--text-h);
+  }
+  .modes {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .modes button,
+  .act,
+  .profiles button {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    background: var(--bg);
+  }
+  .modes button {
+    justify-content: center;
+    font-size: 13px;
+  }
+  .on {
+    border-color: var(--accent) !important;
+    background: var(--accent-bg) !important;
+  }
+  .act {
+    align-self: flex-start;
+    margin-top: 6px;
+  }
+  .act:hover,
+  .modes button:hover,
+  .profiles button:hover {
+    border-color: var(--accent);
+  }
+  .profiles {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .profiles button {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    text-align: left;
+  }
+  .profiles span {
+    font-size: 12px;
+    color: var(--text);
+  }
+</style>
