@@ -25,11 +25,16 @@ No linter or type-checker. `npm run build` surfaces Svelte a11y warnings; keep i
 - Components use Svelte 5 runes (`$state`, `$props`, `$derived`, `$effect`), not Svelte 4 syntax (`export let`, `$:`).
 - **`src/lib/player.svelte.js` is the single source of truth** for the physical player: one module-level `Audio` element plus an exported `$state` object (track, playing, time, volume, mode, profile, detected plays). Both device UIs and the testing panel import it directly and call its functions (`toggle`, `seek`, `setVolume`, `setMode`, `reachForTonearm`, ...); there is no prop drilling. That's how phone actions show up on the display (Option 2).
 - Physical-knob turns set `player.knob` to a fresh object; `PlayerDisplay` watches it in an `$effect` to show a timed overlay. `player.needleAlert` works the same way for the tonearm warning.
-- `App.svelte` is the master page: a view switch (`display` / `phone`), the placement graphic, and `TestPanel` (stands in for physical actions: knobs, hand near tonearm, owner profile).
+- `App.svelte` is the master page: a view switch (`display` / `phone` / `both`; `both` puts the devices side by side and lays `TestPanel` out in 3 columns underneath), the placement graphic, and `TestPanel` (stands in for physical actions: knobs, hand near tonearm, owner profile).
 - `src/lib/display/` = player touchscreen (720px wide, `aspect-ratio: 1.41`). `src/lib/phone/` = companion app (380px wide, `1 / 1.41`). Device UIs are always dark; only the surrounding page follows `prefers-color-scheme` via tokens in `src/app.css`.
-- `src/lib/tracks.js`: the two playable songs (audio in `public/audio/`, served as `/audio/<file>.mp3`), artwork hotlinked from Apple's mzstatic CDN, LRCLIB ids. `lyricsOffset` per track is the calibration knob if lyrics drift from the audio.
+- `src/lib/tracks.js`: the two playable songs (audio in `public/audio/`, built from `import.meta.env.BASE_URL` since the app is served from a subpath), artwork hotlinked from Apple's mzstatic CDN, LRCLIB ids. `lyricsOffset` per track is the calibration knob if lyrics drift from the audio.
 - `src/lib/scenarios.js`: the 4 owner profiles (sensor readings, collection, top artists, generated 7×24 heatmap), sensor thresholds and the overall-tier rule (mean of sensor levels, but one Poor sensor caps overall at Fair).
 - Health tiers use the dataviz status palette (`#0ca30c / #fab219 / #ec835a / #d03b3b`) and always pair color with a glyph + label.
+
+## Hosting
+
+- App: GitHub Pages at https://sai-porumamilla.github.io/UI-Project_1/, deployed by `.github/workflows/deploy.yml` on push to `main`. `vite.config.js` uses `base: './'`, so never hardcode root-absolute (`/...`) asset paths.
+- Write-up (required by the rubric): https://sai-porumamilla.github.io/smart-vinyl-player/, a page in the separate `sai-porumamilla.github.io` portfolio repo. The Testing panel links to it.
 
 ## Design spec
 

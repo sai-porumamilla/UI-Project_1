@@ -4,59 +4,78 @@
   import { profiles } from './scenarios.js'
   import ModeIcon from './ModeIcon.svelte'
 
+  let { wide = false } = $props() // three columns under the side-by-side view
   let showInfo = $state(false)
 </script>
 
-<div class="panel">
-  <h1>Smart Vinyl Player</h1>
-  <p class="dim">by Sai Porumamilla · <a href="https://github.com/sai-porumamilla/UI-Project_1" target="_blank" rel="noreferrer">Project write-up</a></p>
-  <p>A turntable with a front touchscreen, two physical knobs, and sensors that watch its health. A companion app shows that health and your collection.</p>
+<div class="panel" class:wide>
+  <div class="group">
+    <h1>Smart Vinyl Player</h1>
+    <p class="dim">by Sai Porumamilla · <a href="https://sai-porumamilla.github.io/smart-vinyl-player/" target="_blank" rel="noreferrer">Project write-up</a></p>
+    <p>A turntable with a front touchscreen, two physical knobs, and sensors that watch its health. A companion app shows that health and your collection.</p>
 
-  <button class="info" onclick={() => (showInfo = !showInfo)} aria-expanded={showInfo}>ⓘ How the simulation works</button>
-  {#if showInfo}
-    <ul class="help">
-      <li><b>Display & phone</b>: tap them like the real thing. They share one player, so playing from the phone shows up on the display.</li>
-      <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter.</li>
-      <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode.</li>
-      <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
-      <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>
-      <li>Leave the Now Playing screen untouched for 8 s and it fades to the album art.</li>
-    </ul>
-  {/if}
-
-  <h2>Physical controls</h2>
-  <label class="knob">
-    <span>Volume knob <b>{player.volume}</b></span>
-    <input type="range" min="0" max="100" value={player.volume} oninput={(e) => setVolume(+e.currentTarget.value)} />
-  </label>
-
-  <span class="label">Mode knob</span>
-  <div class="modes" role="radiogroup" aria-label="Mode knob">
-    {#each MODES as m, i}
-      <button role="radio" aria-checked={player.mode === i} class:on={player.mode === i} onclick={() => setMode(i)}>
-        <ModeIcon id={m.id} size={20} />{m.label}
-      </button>
-    {/each}
+    <button class="info" onclick={() => (showInfo = !showInfo)} aria-expanded={showInfo}>ⓘ How the simulation works</button>
+    {#if showInfo}
+      <ul class="help">
+        <li><b>Display & phone</b>: tap them like the real thing. They share one player, so playing from the phone shows up on the display.</li>
+        <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter.</li>
+        <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode.</li>
+        <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
+        <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>
+        <li>Leave the Now Playing screen untouched for 8 s and it fades to the album art.</li>
+      </ul>
+    {/if}
   </div>
 
-  <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>
-  {#if !player.playing}<p class="dim">Start a song first. The warning only shows while the needle is down.</p>{/if}
+  <div class="group">
+    <h2>Physical controls</h2>
+    <label class="knob">
+      <span>Volume knob <b>{player.volume}</b></span>
+      <input type="range" min="0" max="100" value={player.volume} oninput={(e) => setVolume(+e.currentTarget.value)} />
+    </label>
 
-  <h2>Owner profile</h2>
-  <div class="profiles">
-    {#each profiles as p, i}
-      <button class:on={player.profile === i} onclick={() => (player.profile = i)}>
-        <b>{p.name}</b><span>{p.blurb}</span>
-      </button>
-    {/each}
+    <span class="label">Mode knob</span>
+    <div class="modes" role="radiogroup" aria-label="Mode knob">
+      {#each MODES as m, i}
+        <button role="radio" aria-checked={player.mode === i} class:on={player.mode === i} onclick={() => setMode(i)}>
+          <ModeIcon id={m.id} size={20} />{m.label}
+        </button>
+      {/each}
+    </div>
+
+    <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>
+    {#if !player.playing}<p class="dim">Start a song first. The warning only shows while the needle is down.</p>{/if}
+  </div>
+
+  <div class="group">
+    <h2>Owner profile</h2>
+    <div class="profiles">
+      {#each profiles as p, i}
+        <button class:on={player.profile === i} onclick={() => (player.profile = i)}>
+          <b>{p.name}</b><span>{p.blurb}</span>
+        </button>
+      {/each}
+    </div>
   </div>
 </div>
 
 <style>
-  .panel {
+  .panel,
+  .group {
     display: flex;
     flex-direction: column;
     gap: 8px;
+  }
+  .panel.wide {
+    display: grid;
+    grid-template-columns: 1.2fr 1fr 1fr;
+    gap: 28px;
+    align-items: start;
+  }
+  .wide h2 {
+    margin-top: 0;
+  }
+  .panel {
     padding: 20px;
     border: 1px solid var(--border);
     border-radius: 14px;
