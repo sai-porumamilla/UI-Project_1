@@ -24,10 +24,12 @@ No linter or type-checker. `npm run build` surfaces Svelte a11y warnings; keep i
 
 - Components use Svelte 5 runes (`$state`, `$props`, `$derived`, `$effect`), not Svelte 4 syntax (`export let`, `$:`).
 - **`src/lib/player.svelte.js` is the single source of truth** for the physical player: one module-level `Audio` element plus an exported `$state` object (track, playing, time, volume, mode, profile, detected plays). Both device UIs and the testing panel import it directly and call its functions (`toggle`, `seek`, `setVolume`, `setMode`, `reachForTonearm`, ...); there is no prop drilling. That's how phone actions show up on the display (Option 2).
+- **Seeking cues the automatic tonearm.** In 33/45 modes `seek`/`skip` and the scrub bar (`scrubStart`/`scrubTo`/`scrubEnd`) run lift → move → lower in `player.svelte.js`; `player.arm` drives `display/Tonearm.svelte` (top-down platter view). While `arm.cueing`, audio is paused but `player.playing` keeps the user's intent (the audio play/pause listeners ignore cue-driven events), and `cueToken` cancels a cue in flight. Bluetooth mode seeks instantly.
 - Physical-knob turns set `player.knob` to a fresh object; `PlayerDisplay` watches it in an `$effect` to show a timed overlay. `player.needleAlert` works the same way for the tonearm warning.
 - `App.svelte` is the master page: a view switch (`display` / `phone` / `both`; `both` puts the devices side by side and lays `TestPanel` out in 3 columns underneath), the placement graphic, and `TestPanel` (stands in for physical actions: knobs, hand near tonearm, owner profile).
 - `src/lib/display/` = player touchscreen (720px wide, `aspect-ratio: 1.41`). `src/lib/phone/` = companion app (380px wide, `1 / 1.41`). Device UIs are always dark; only the surrounding page follows `prefers-color-scheme` via tokens in `src/app.css`.
-- `src/lib/tracks.js`: the two playable songs (audio in `public/audio/`, built from `import.meta.env.BASE_URL` since the app is served from a subpath), artwork hotlinked from Apple's mzstatic CDN, LRCLIB ids. `lyricsOffset` per track is the calibration knob if lyrics drift from the audio.
+- `src/lib/records.js`: the playable records. Each is **one audio file of the whole album** (`public/audio/*.m4a`, AAC 128 kbps to keep files under GitHub's 50 MB warning, URL built from `import.meta.env.BASE_URL` since the app is served from a subpath) plus `[side, title, start, lyricsId]` rows; `build()` derives tracks and sides (`start`/`end` seconds, `disc` = sides paired A/B, C/D, `first`/`last` track index). Artwork is hotlinked (Apple mzstatic, Deezer). `lyricsOffset` per track is the calibration knob if lyrics drift.
+- **Sides are the unit of playback**, like a real record: `player.time` is seconds into the album file, the scrub bar/tonearm span only the current side, and `next` on a side's last song ends the side. In 33/45 modes `endOfSide()` parks the needle and opens `display/Changer.svelte` (flip / swap disc / new album); `putOn(record, side)` plays the place → detect → needle-drop sequence. Bluetooth mode streams straight through sides. `now()` returns `{ record, side, track }` and must be called inside `$derived`.
 - `src/lib/scenarios.js`: the 4 owner profiles (sensor readings, collection, top artists, generated 7×24 heatmap), sensor thresholds and the overall-tier rule (mean of sensor levels, but one Poor sensor caps overall at Fair).
 - Health tiers use the dataviz status palette (`#0ca30c / #fab219 / #ec835a / #d03b3b`) and always pair color with a glyph + label.
 
@@ -48,7 +50,7 @@ No linter or type-checker. `npm run build` surfaces Svelte a11y warnings; keep i
 
 Forward-facing screen on the front of the player, below the turntable, between left/right speakers.
 
-1. **Playback page**: play/pause/resume, prev/next, forward/backward scrubbing. When idle (not touched), it fades to album artwork with album name, artist name, and song name.
+1. **Playback page**: play/pause/resume, prev/next, forward/backward scrubbing. Scrubbing physically moves the needle: the arm lifts, swings to the groove for the target time (shown on a top-down platter view in place of the art), then lowers and resumes. When idle (not touched), it fades to album artwork with album name, artist name, and song name.
 2. **Lyrics page**: time-synced lyrics like Apple Music/Spotify, the current line highlighted as it plays (line-level timing, an accepted compromise: LRC has no per-letter timing). Tapping a line seeks to it.
 
 Signifiers/affordances:
@@ -57,7 +59,7 @@ Signifiers/affordances:
   - **Volume knob** → an arched dial-gauge / panel-meter overlay.
   - **Playback-mode knob** (bottom one): 33 RPM, 45 RPM, or Bluetooth → show the mode's name and a universally recognized symbol.
 
-Tracks: "Broken Clocks" by SZA (album *Ctrl*) and "Sunshine" by Steve Lacy ft. Fousheé (album *Gemini Rights*). Lyrics are fetched at runtime from **LRCLIB** (free, no API key, CORS `*`): `GET https://lrclib.net/api/get/{id}` and read `syncedLyrics` (LRC format, `[mm:ss.xx] line`). IDs that match the local MP3 durations: Broken Clocks `34191638` (232 s), Sunshine `2840510` (293 s). Never hardcode lyrics into the repo or write them from memory.
+Records: **Ctrl** by SZA (2 discs, Sides A–D) and **The Lo-Fis** by Steve Lacy (1 disc, Sides A–B), with side/track timestamps from the user. When a side ends, the display tells the user to flip the record (same disc), swap discs (other disc) or put on a new album, offering every side plus the other albums; choosing one shows the physical step, then "detected" with the new artwork, then the needle drops. Lyrics are fetched at runtime from **LRCLIB** (free, no API key, CORS `*`): `GET https://lrclib.net/api/get/{id}`, `syncedLyrics` (LRC, `[mm:ss.xx] line`, times relative to the song, so offset by `track.start`). IDs were matched by title + song length. Never hardcode lyrics into the repo or write them from memory.
 
 ### Sub-project 2: mobile companion app
 

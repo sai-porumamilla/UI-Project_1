@@ -1,6 +1,6 @@
 <script>
   import { player } from '../player.svelte.js'
-  import { tracks } from '../tracks.js'
+  import { records as playable } from '../records.js'
 
   let { profile } = $props()
 
@@ -52,8 +52,9 @@
     <h3>Detected on the player</h3>
     <ul class="plays">
       {#each player.plays.slice(0, 3) as p}
-        {@const t = tracks[p.trackIndex]}
-        <li><img src={t.artwork} alt="" /><div><b>{t.title}</b><span class="muted">{t.artist} · {t.album}</span></div><span class="muted">{ago(p.at)}</span></li>
+        {@const r = playable[p.recordIndex]}
+        {@const t = r.tracks[p.trackIndex]}
+        <li><img src={r.artwork} alt="" /><div><b>{t.title}</b><span class="muted">{r.artist} · {r.title} · Side {t.side}</span></div><span class="muted">{ago(p.at)}</span></li>
       {/each}
     </ul>
   {/if}

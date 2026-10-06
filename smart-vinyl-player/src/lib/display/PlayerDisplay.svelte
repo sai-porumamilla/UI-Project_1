@@ -2,12 +2,13 @@
   // Front-facing touchscreen on the player, between the two speakers.
   import { onMount } from 'svelte'
   import { fade, scale } from 'svelte/transition'
-  import { player, MODES, toggle, next, prev, skip, seek } from '../player.svelte.js'
-  import { tracks } from '../tracks.js'
+  import { player, MODES, now, toggle, next, prev, skip, scrubStart, scrubTo, scrubEnd, openChanger } from '../player.svelte.js'
   import Icon from '../Icon.svelte'
   import ModeIcon from '../ModeIcon.svelte'
   import VolumeGauge from './VolumeGauge.svelte'
   import Lyrics from './Lyrics.svelte'
+  import Tonearm from './Tonearm.svelte'
+  import Changer from './Changer.svelte'
 
   const IDLE_MS = 8000 // untouched this long on Now Playing -> fade to artwork
   const KNOB_MS = 1800
@@ -19,9 +20,10 @@
   let needleShown = $state(false)
   let timer
 
-  const track = $derived(tracks[player.trackIndex])
+  const { record, side, track } = $derived(now())
+  const pct = $derived(((player.time - side.start) / (side.end - side.start)) * 100)
   const mode = $derived(MODES[player.mode])
-  const needleDown = $derived(player.playing && mode.id !== 'bt')
+  const needleDown = $derived(player.playing && mode.id !== 'bt' && !player.arm.cueing)
 
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
 
@@ -54,13 +56,18 @@
   })
 </script>
 
-<div class="screen" role="application" aria-label="Player touchscreen" onpointerdown={wake} style:--art="url({track.artwork})">
+<svelte:window onpointerup={scrubEnd} />
+
+<div class="screen" role="application" aria-label="Player touchscreen" onpointerdown={wake} style:--art="url({record.artwork})">
   <header>
     <nav>
       <button class:on={page === 'playback'} onclick={() => (page = 'playback')}>Now Playing</button>
       <button class:on={page === 'lyrics'} onclick={() => (page = 'lyrics')}>Lyrics</button>
     </nav>
     <div class="status">
+      <button class="chip side-chip" onclick={openChanger} aria-label="Change side or record">
+        {record.sides.length > 2 ? `Disc ${side.disc} · ` : ''}Side {side.name} <span aria-hidden="true">⇄</span>
+      </button>
       <span class="chip"><ModeIcon id={mode.id} size={16} /> {mode.label}</span>
       <span class="chip">Vol {player.volume}</span>
     </div>
@@ -69,26 +76,39 @@
   {#if page === 'playback'}
     <section class="playback">
       <div class="disc-wrap">
-        <div class="disc" class:spin={player.playing && mode.rpm} style:--rpm={mode.rpm || 33}></div>
-        <img class="art" src={track.artwork} alt="{track.album} cover" />
+        {#if player.arm.cueing}
+          <div class="cue" transition:fade={{ duration: 150 }}><Tonearm /></div>
+        {:else}
+          <div class="disc" class:spin={player.playing && mode.rpm} style:--rpm={mode.rpm || 33}></div>
+          <img class="art" src={record.artwork} alt="{record.title} cover" />
+        {/if}
       </div>
       <div class="meta">
-        <span class="eyebrow">{player.playing ? 'Playing' : 'Paused'} · {mode.label}</span>
+        <span class="eyebrow">{player.sideDone ? `Side ${side.name} finished` : player.arm.cueing ? 'Moving the needle' : player.playing ? 'Playing' : 'Paused'} · {mode.label}</span>
         <h2>{track.title}</h2>
-        <p>{track.artist} — {track.album}</p>
+        <p>{record.artist} — {record.title}</p>
+        <p class="dim">Side {side.name} · Song {player.trackIndex - side.first + 1} of {side.last - side.first + 1}</p>
 
+        <!-- one scrub bar per side, like the record itself; marks show the gaps between songs -->
+        <div class="scrub-wrap">
+          {#each record.tracks.slice(side.first + 1, side.last + 1) as t}
+            <span class="tick" style:left="{((t.start - side.start) / (side.end - side.start)) * 100}%"></span>
+          {/each}
         <input
           class="scrub"
           type="range"
-          min="0"
-          max={player.duration || 1}
+          min={side.start}
+          max={side.end}
           step="0.1"
           value={player.time}
-          oninput={(e) => seek(+e.currentTarget.value)}
-          style:--pct="{(player.time / (player.duration || 1)) * 100}%"
-          aria-label="Scrub"
+          onpointerdown={scrubStart}
+          oninput={(e) => scrubTo(+e.currentTarget.value)}
+          onchange={scrubEnd}
+          style:--pct="{pct}%"
+          aria-label="Scrub through Side {side.name}"
         />
-        <div class="times"><span>{fmt(player.time)}</span><span>-{fmt(Math.max(0, player.duration - player.time))}</span></div>
+        </div>
+        <div class="times"><span>{fmt(player.time - side.start)}</span><span>-{fmt(Math.max(0, side.end - player.time))}</span></div>
 
         <div class="controls">
           <button onclick={prev} aria-label="Previous"><Icon name="prev" size={30} /></button>
@@ -110,8 +130,8 @@
           <Icon name={player.playing ? 'pause' : 'play'} size={28} />
         </button>
         <button onclick={next} aria-label="Next"><Icon name="next" /></button>
-        <div class="bar"><div style:width="{(player.time / (player.duration || 1)) * 100}%"></div></div>
-        <span class="t">{fmt(player.time)}</span>
+        <div class="bar"><div style:width="{pct}%"></div></div>
+        <span class="t">{fmt(player.time - side.start)}</span>
       </div>
     </section>
   {/if}
@@ -123,13 +143,23 @@
 
   {#if idle && page === 'playback'}
     <button class="idle" transition:fade={{ duration: 700 }} aria-label="Wake display">
-      <img src={track.artwork} alt="" />
+      <img src={record.artwork} alt="" />
       <div>
         <h1>{track.title}</h1>
-        <p>{track.artist}</p>
-        <p class="dim">{track.album}</p>
+        <p>{record.artist}</p>
+        <p class="dim">{record.title} · Side {side.name}</p>
       </div>
     </button>
+  {/if}
+
+  {#if player.changer || player.swap}
+    <Changer />
+  {/if}
+
+  {#if player.arm.cueing && page === 'lyrics'}
+    <div class="overlay" transition:fade={{ duration: 150 }}>
+      <div class="card"><Tonearm size={270} /></div>
+    </div>
   {/if}
 
   {#if knobShown}
@@ -261,6 +291,12 @@
     height: 250px;
     flex-shrink: 0;
   }
+  .cue {
+    position: absolute;
+    inset: 0;
+    display: grid;
+    place-items: center start;
+  }
   .art {
     position: absolute;
     inset: 0;
@@ -303,9 +339,29 @@
     text-transform: uppercase;
     color: rgba(255, 255, 255, 0.55);
   }
-  .scrub {
-    width: 100%;
+  .scrub-wrap {
+    position: relative;
     margin: 22px 0 4px;
+  }
+  .tick {
+    position: absolute;
+    top: -6px;
+    width: 2px;
+    height: 6px;
+    border-radius: 1px;
+    background: rgba(255, 255, 255, 0.45);
+  }
+  .side-chip {
+    border: 0;
+    cursor: pointer;
+    font: inherit;
+    font-size: 13px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.25);
+  }
+  .scrub {
+    display: block;
+    width: 100%;
+    margin: 0;
     height: 6px;
     appearance: none;
     border-radius: 3px;

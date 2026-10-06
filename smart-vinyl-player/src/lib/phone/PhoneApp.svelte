@@ -1,7 +1,6 @@
 <script>
   // Companion app. Shares state with the player, so controls here move the real deck.
-  import { player, MODES, toggle, next } from '../player.svelte.js'
-  import { tracks } from '../tracks.js'
+  import { player, MODES, toggle, next, now } from '../player.svelte.js'
   import { profiles } from '../scenarios.js'
   import Icon from '../Icon.svelte'
   import ModeIcon from '../ModeIcon.svelte'
@@ -9,7 +8,7 @@
   import Library from './Library.svelte'
 
   let tab = $state('health')
-  const track = $derived(tracks[player.trackIndex])
+  const { record, side, track } = $derived(now())
   const mode = $derived(MODES[player.mode])
   const profile = $derived(profiles[player.profile])
 </script>
@@ -24,12 +23,24 @@
     </div>
   </header>
 
+  {#if player.sideDone || player.swap}
+    <!-- push notification from the player -->
+    <div class="notice" role="status">
+      <ModeIcon id="33" size={18} />
+      {#if player.swap}
+        <span>{player.swap.phase === 'place' ? 'Changing the record…' : 'New side detected on the player'}</span>
+      {:else}
+        <span><b>Side {side.name} is over.</b> Choose what to put on next on the player.</span>
+      {/if}
+    </div>
+  {/if}
+
   <div class="now">
-    <img src={track.artwork} alt="" />
-    <div class="txt"><b>{track.title}</b><span>{track.artist}</span></div>
+    <img src={record.artwork} alt="" />
+    <div class="txt"><b>{track.title}</b><span>{record.artist} · Side {side.name}</span></div>
     <button onclick={toggle} aria-label={player.playing ? 'Pause' : 'Play'}><Icon name={player.playing ? 'pause' : 'play'} /></button>
     <button onclick={next} aria-label="Next"><Icon name="next" /></button>
-    <div class="prog" style:width="{(player.time / (player.duration || 1)) * 100}%"></div>
+    <div class="prog" style:width="{((player.time - side.start) / (side.end - side.start)) * 100}%"></div>
   </div>
 
   <main>
@@ -101,6 +112,17 @@
     height: 7px;
     border-radius: 50%;
     background: #0ca30c;
+  }
+  .notice {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin: 0 14px 8px;
+    padding: 10px 12px;
+    border-radius: 14px;
+    background: #2a2a33;
+    font-size: 12px;
+    color: #e4e4e7;
   }
   .now {
     position: relative;

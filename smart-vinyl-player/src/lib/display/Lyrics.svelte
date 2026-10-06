@@ -1,15 +1,14 @@
 <script>
-  import { player, seek } from '../player.svelte.js'
-  import { tracks } from '../tracks.js'
+  import { player, seek, now } from '../player.svelte.js'
   import { fetchLyrics, lineAt } from '../lyrics.js'
 
   let lines = $state([])
   let status = $state('loading')
   let box
-  let els = []
 
-  const track = $derived(tracks[player.trackIndex])
-  const current = $derived(lineAt(lines, player.time + track.lyricsOffset))
+  const track = $derived(now().track)
+  // LRC times are from the start of the song; the audio file is the whole album.
+  const current = $derived(lineAt(lines, player.time - track.start + track.lyricsOffset))
 
   $effect(() => {
     let live = true
@@ -27,7 +26,7 @@
 
   // Keep the sung line centered.
   $effect(() => {
-    const el = els[current]
+    const el = box?.querySelectorAll('.line')[current]
     if (el && box) box.scrollTo({ top: el.offsetTop - box.clientHeight / 2 + el.offsetHeight / 2, behavior: 'smooth' })
   })
 </script>
@@ -43,11 +42,10 @@
     <div class="pad"></div>
     {#each lines as line, i}
       <button
-        bind:this={els[i]}
         class="line"
         class:past={i < current}
         class:now={i === current}
-        onclick={() => seek(line.time - track.lyricsOffset)}
+        onclick={() => seek(track.start + line.time - track.lyricsOffset)}
       >
         {line.text || '♪'}
       </button>

@@ -1,6 +1,6 @@
 <script>
   // Project info + controls that stand in for physically using the player.
-  import { player, MODES, setVolume, setMode, reachForTonearm } from './player.svelte.js'
+  import { player, MODES, setVolume, setMode, reachForTonearm, nearSideEnd } from './player.svelte.js'
   import { profiles } from './scenarios.js'
   import ModeIcon from './ModeIcon.svelte'
 
@@ -22,6 +22,8 @@
         <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode.</li>
         <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
         <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>
+        <li><b>Scrubbing</b>: in 33⅓ or 45 mode, dragging the scrub bar, ±10 s or tapping a lyric makes the automatic tonearm lift, swing to that spot on the record and lower again.</li>
+        <li><b>Skip to end of side</b>: jumps to the last few seconds of the side so you can see the flip / swap-disc prompt without waiting. Ctrl is a 2-disc album (Sides A–D); The Lo-Fis has Sides A and B.</li>
         <li>Leave the Now Playing screen untouched for 8 s and it fades to the album art.</li>
       </ul>
     {/if}
@@ -43,7 +45,10 @@
       {/each}
     </div>
 
-    <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>
+    <div class="row">
+      <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>
+      <button class="act" onclick={nearSideEnd}>⏭ Skip to end of side</button>
+    </div>
     {#if !player.playing}<p class="dim">Start a song first. The warning only shows while the needle is down.</p>{/if}
   </div>
 
@@ -147,8 +152,10 @@
     border-color: var(--accent) !important;
     background: var(--accent-bg) !important;
   }
-  .act {
-    align-self: flex-start;
+  .row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
     margin-top: 6px;
   }
   .act:hover,
