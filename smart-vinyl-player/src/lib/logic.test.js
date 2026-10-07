@@ -2,7 +2,7 @@
 import assert from 'node:assert/strict'
 import { parseLrc, lineAt } from './lyrics.js'
 import { profiles, overallLevel, levelOf } from './scenarios.js'
-import { records, trackAt } from './records.js'
+import { records, trackAt, speedFor } from './records.js'
 
 const lines = parseLrc('[ar: x]\n[00:10.00] b\n[00:02.50] a\n[01:00.00]\n')
 assert.deepEqual(lines, [
@@ -30,4 +30,7 @@ assert.deepEqual(lofis.sides.map((s) => [s.name, s.disc, s.first, s.last]), [['A
 assert.equal(ctrl.tracks[8].title, 'Broken Clocks')
 assert.equal(trackAt(ctrl, 1785.9), 7) // last second of Side B is still "Garden"
 assert.equal(trackAt(ctrl, 1786), 8)
+// Disc size picks the speed: 12-inch LP = 33⅓, 7-inch single = 45.
+assert.equal(speedFor(ctrl), '33')
+assert.equal(speedFor({ size: 7 }), '45')
 console.log('logic ok')

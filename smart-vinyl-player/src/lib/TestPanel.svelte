@@ -1,6 +1,8 @@
 <script>
   // Project info + controls that stand in for physically using the player.
-  import { player, MODES, setVolume, setMode, reachForTonearm, nearSideEnd } from './player.svelte.js'
+  import { player, MODES, now, speedLocked, setVolume, setMode, reachForTonearm, nearSideEnd } from './player.svelte.js'
+  import { discLabel, speedFor } from './records.js'
+  import Icon from './Icon.svelte'
   import { profiles } from './scenarios.js'
   import ModeIcon from './ModeIcon.svelte'
 
@@ -19,7 +21,7 @@
       <ul class="help">
         <li><b>Display & phone</b>: tap them like the real thing. They share one player, so playing from the phone shows up on the display.</li>
         <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter.</li>
-        <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode.</li>
+        <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode. The knob locks while a record plays, and a disc-size sensor knows the speed each record needs (12″ LP = 33⅓, 7″ single = 45): at the wrong speed the needle won't drop.</li>
         <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
         <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>
         <li><b>Scrubbing</b>: in 33⅓ or 45 mode, dragging the scrub bar, ±10 s or tapping a lyric makes the automatic tonearm lift, swing to that spot on the record and lower again.</li>
@@ -40,10 +42,15 @@
     <div class="modes" role="radiogroup" aria-label="Mode knob">
       {#each MODES as m, i}
         <button role="radio" aria-checked={player.mode === i} class:on={player.mode === i} onclick={() => setMode(i)}>
+          {#if speedLocked() && player.mode !== i}<Icon name="lock" size={14} />{/if}
           <ModeIcon id={m.id} size={20} />{m.label}
         </button>
       {/each}
     </div>
+    <p class="dim">
+      On the platter: {discLabel(now().record)}, {MODES.find((m) => m.id === speedFor(now().record)).label}.
+      {speedLocked() ? 'Knob locked while the needle is down.' : ''}
+    </p>
 
     <div class="row">
       <button class="act" onclick={reachForTonearm}>✋ Reach for tonearm</button>

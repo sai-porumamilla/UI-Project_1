@@ -2,16 +2,18 @@
   // Front-facing touchscreen on the player, between the two speakers.
   import { onMount } from 'svelte'
   import { fade, scale } from 'svelte/transition'
-  import { player, MODES, now, toggle, next, prev, skip, scrubStart, scrubTo, scrubEnd, openChanger } from '../player.svelte.js'
+  import { player, MODES, now, speedLocked, wrongSpeed, toggle, next, prev, skip, scrubStart, scrubTo, scrubEnd, openChanger } from '../player.svelte.js'
   import Icon from '../Icon.svelte'
   import ModeIcon from '../ModeIcon.svelte'
   import VolumeGauge from './VolumeGauge.svelte'
   import Lyrics from './Lyrics.svelte'
   import Tonearm from './Tonearm.svelte'
   import Changer from './Changer.svelte'
+  import { speedFor, discLabel } from '../records.js'
 
   const IDLE_MS = 8000 // untouched this long on Now Playing -> fade to artwork
   const KNOB_MS = 1800
+  const WARN_MS = 3500 // speed lock / wrong-speed explanations stay up longer
   const NEEDLE_MS = 5000
 
   let page = $state('playback')
@@ -23,6 +25,9 @@
   const { record, side, track } = $derived(now())
   const pct = $derived(((player.time - side.start) / (side.end - side.start)) * 100)
   const mode = $derived(MODES[player.mode])
+  const locked = $derived(speedLocked())
+  const mismatch = $derived(wrongSpeed())
+  const cut = $derived(MODES.find((m) => m.id === speedFor(record))) // speed this disc was made for
   const needleDown = $derived(player.playing && mode.id !== 'bt' && !player.arm.cueing)
 
   const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`
@@ -39,8 +44,9 @@
 
   $effect(() => {
     if (!player.knob) return
-    knobShown = player.knob.kind
-    const id = setTimeout(() => (knobShown = null), KNOB_MS)
+    const kind = player.knob.kind // read once: reading knobShown here would re-trigger this effect
+    knobShown = kind
+    const id = setTimeout(() => (knobShown = null), ['volume', 'mode'].includes(kind) ? KNOB_MS : WARN_MS)
     return () => clearTimeout(id)
   })
 
@@ -68,7 +74,11 @@
       <button class="chip side-chip" onclick={openChanger} aria-label="Change side or record">
         {record.sides.length > 2 ? `Disc ${side.disc} · ` : ''}Side {side.name} <span aria-hidden="true">⇄</span>
       </button>
-      <span class="chip"><ModeIcon id={mode.id} size={16} /> {mode.label}</span>
+      <span class="chip" class:warn-chip={mismatch} title={locked ? 'Speed is locked while the record plays' : ''}>
+        {#if locked}<Icon name="lock" size={13} />{/if}
+        <ModeIcon id={mode.id} size={16} />
+        {mismatch ? `Set speed to ${cut.label}` : mode.label}
+      </span>
       <span class="chip">Vol {player.volume}</span>
     </div>
   </header>
@@ -87,7 +97,7 @@
         <span class="eyebrow">{player.sideDone ? `Side ${side.name} finished` : player.arm.cueing ? 'Moving the needle' : player.playing ? 'Playing' : 'Paused'} · {mode.label}</span>
         <h2>{track.title}</h2>
         <p>{record.artist} — {record.title}</p>
-        <p class="dim">Side {side.name} · Song {player.trackIndex - side.first + 1} of {side.last - side.first + 1}</p>
+        <p class="dim">Side {side.name} · Song {player.trackIndex - side.first + 1} of {side.last - side.first + 1} · {discLabel(record)}</p>
 
         <!-- one scrub bar per side, like the record itself; marks show the gaps between songs -->
         <div class="scrub-wrap">
@@ -163,10 +173,27 @@
   {/if}
 
   {#if knobShown}
-    <div class="overlay" transition:fade={{ duration: 200 }}>
+    <!-- informational HUD: taps pass through to the controls underneath -->
+    <div class="overlay hud" transition:fade={{ duration: 200 }}>
       <div class="card" transition:scale={{ start: 0.92, duration: 200 }}>
         {#if knobShown === 'volume'}
           <VolumeGauge value={player.volume} />
+        {:else if knobShown === 'locked'}
+          <Icon name="lock" size={64} />
+          <h2 class="mode-name">Speed locked</h2>
+          <p class="dim">The needle is on the record. Pause first, then change the speed.</p>
+          <button class="big pulse hud-action" onclick={toggle}><Icon name="pause" size={30} /> Pause</button>
+        {:else if knobShown === 'mismatch'}
+          <!-- disc size is what tells the speed: highlight the size on the platter -->
+          <svg width="220" height="110" viewBox="0 0 220 110" aria-hidden="true">
+            {#each [{ size: 12, r: 46, x: 62 }, { size: 7, r: 28, x: 170 }] as d}
+              <circle cx={d.x} cy="52" r={d.r} fill="#141418" stroke={d.size === record.size ? 'var(--glow)' : 'rgba(255,255,255,.25)'} stroke-width={d.size === record.size ? 3 : 1.5} />
+              <circle cx={d.x} cy="52" r={d.r * 0.32} fill={d.size === record.size ? 'var(--glow)' : 'rgba(255,255,255,.2)'} />
+              <text x={d.x} y="108" text-anchor="middle" font-size="12" fill={d.size === record.size ? '#fff' : 'rgba(255,255,255,.45)'}>{d.size}″ · {d.size === 7 ? '45' : '33⅓'}</text>
+            {/each}
+          </svg>
+          <h2 class="mode-name">This is a {discLabel(record)}</h2>
+          <p class="dim">It plays at {cut.label}. Turn the speed knob to {cut.label} to play it.</p>
         {:else}
           <ModeIcon id={mode.id} size={96} />
           <h2 class="mode-name">{mode.label}</h2>
@@ -266,6 +293,10 @@
   .status {
     display: flex;
     gap: 8px;
+  }
+  .warn-chip {
+    color: #fab219 !important;
+    box-shadow: inset 0 0 0 1px #fab219;
   }
   .chip {
     display: flex;
@@ -524,6 +555,22 @@
   }
   .mode-name {
     font-size: 40px;
+  }
+  .hud {
+    pointer-events: none;
+  }
+  .hud-action {
+    pointer-events: auto;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: auto !important;
+    height: auto !important;
+    margin-top: 12px;
+    padding: 10px 24px 10px 18px;
+    border-radius: 999px !important;
+    font-size: 18px;
+    font-weight: 700;
   }
   .warn .card {
     border: 2px solid #fab219;

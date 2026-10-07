@@ -1,6 +1,6 @@
 // Single source of truth for the physical player. Both the on-device display
 // and the phone app read/write this, so they always stay in sync.
-import { records, trackAt } from './records.js'
+import { records, trackAt, speedFor } from './records.js'
 
 export const MODES = [
   { id: '33', label: '33⅓ RPM', rpm: 33.3 },
@@ -64,6 +64,7 @@ function detect() {
 export function play() {
   if (player.swap) return
   if (player.sideDone) return void (player.changer = true) // needle is parked: ask what to put on
+  if (wrongSpeed()) return flash('mismatch') // won't drop the needle at the wrong speed
   if (player.arm.cueing) return (resumeAfter = player.playing = true) // arm drops when the cue ends
   audio.play()
 }
@@ -219,8 +220,9 @@ export async function putOn(recordIndex, sideIndex) {
   await sleep(DETECT_MS)
   if (token !== cueToken) return
 
-  // Drop the needle onto the lead-in groove.
+  // Drop the needle onto the lead-in groove, unless the speed knob doesn't suit this disc.
   player.swap = null
+  if (wrongSpeed()) return flash('mismatch')
   Object.assign(player.arm, { cueing: true, lifted: true, phase: 'lift', pos: 0, ms: 0 })
   resumeAfter = player.playing = true
   lower(token)
@@ -228,15 +230,28 @@ export async function putOn(recordIndex, sideIndex) {
 
 // --- Physical inputs (simulated from the testing panel) ---
 
+/** Tell the display to show a knob overlay (a fresh object each time re-triggers it). */
+function flash(kind) {
+  player.knob = { kind }
+}
+
 export function setVolume(v) {
   player.volume = Math.max(0, Math.min(100, Math.round(v)))
   audio.volume = player.volume / 100
-  player.knob = { kind: 'volume' }
+  flash('volume')
 }
 
+/** The speed knob locks while the needle is on the record. */
+export const speedLocked = () => player.playing && needleMode()
+/** Knob is on a record speed that doesn't match the size of the disc on the platter. */
+export const wrongSpeed = () => needleMode() && MODES[player.mode].id !== speedFor(now().record)
+
 export function setMode(i) {
+  if (i === player.mode) return
+  if (speedLocked()) return flash('locked') // knob doesn't move; the display says why
+  if (player.playing) pause() // leaving Bluetooth: stop the stream before the needle is involved
   player.mode = i
-  player.knob = { kind: 'mode' }
+  flash(wrongSpeed() ? 'mismatch' : 'mode')
 }
 
 /** Proximity sensor on the tonearm: only a problem while the needle is on the record. */

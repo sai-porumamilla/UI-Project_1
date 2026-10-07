@@ -23,6 +23,7 @@ export const records = [
   {
     title: 'Ctrl',
     artist: 'SZA',
+    size: 12, // inches: double LP
     src: audio('ctrl.m4a'),
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/a2/bc/ad/a2bcad46-b389-4be1-8bac-5a0959b0b8e4/886446548449.jpg/600x600bb.jpg',
     length: '48:53',
@@ -46,6 +47,7 @@ export const records = [
   {
     title: 'The Lo-Fis',
     artist: 'Steve Lacy',
+    size: 12,
     src: audio('the-lo-fis.m4a'),
     artwork: 'https://cdn-images.dzcdn.net/images/cover/aab27852a05351552e9dcacdbb14ec3a/500x500-000000-80-0-0.jpg',
     length: '25:22',
@@ -68,6 +70,13 @@ export const records = [
     ],
   },
 ].map(build)
+
+/**
+ * A sensor on the platter measures the disc's size, and size tells the speed it was cut for:
+ * a 12-inch LP plays at 33⅓ RPM, a 7-inch single at 45. Returns a MODES id.
+ */
+export const speedFor = (record) => (record.size === 7 ? '45' : '33')
+export const discLabel = (record) => (record.size === 7 ? '7″ single' : '12″ LP')
 
 /** Index of the track playing at `time` (seconds into the record's audio file). */
 export const trackAt = (record, time) => {

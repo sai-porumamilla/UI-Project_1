@@ -3,7 +3,8 @@
   // user through the physical change (flip, swap disc, new record) until the player detects it.
   import { fade } from 'svelte/transition'
   import { player, now, putOn, closeChanger } from '../player.svelte.js'
-  import { records } from '../records.js'
+  import { records, discLabel, speedFor } from '../records.js'
+  import { MODES } from '../player.svelte.js'
 
   const { record, side } = $derived(now())
   const nextSide = $derived(player.sideIndex + 1 < record.sides.length ? player.sideIndex + 1 : null)
@@ -65,9 +66,9 @@
       </div>
       <div class="text">
         {#if swap.phase === 'detect'}
-          <span class="ok">✓ Detected</span>
+          <span class="ok">✓ Detected · {discLabel(toRecord)}</span>
           <h2>{toRecord.title} · Side {toSide.name}</h2>
-          <p>{toRecord.artist}. Starting with “{toRecord.tracks[toSide.first].title}”.</p>
+          <p>{toRecord.artist}. Plays at {MODES.find((m) => m.id === speedFor(toRecord)).label}. Starting with “{toRecord.tracks[toSide.first].title}”.</p>
         {:else}
           <span class="eyebrow">Your turn</span>
           <h2>{steps[0]}</h2>
