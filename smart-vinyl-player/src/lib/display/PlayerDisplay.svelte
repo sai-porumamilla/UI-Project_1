@@ -178,6 +178,7 @@
       <div class="card" transition:scale={{ start: 0.92, duration: 200 }}>
         {#if knobShown === 'volume'}
           <VolumeGauge value={player.volume} />
+          {#if player.knob?.from === 'phone'}<p class="dim">Set from the companion app</p>{/if}
         {:else if knobShown === 'locked'}
           <Icon name="lock" size={64} />
           <h2 class="mode-name">Speed locked</h2>

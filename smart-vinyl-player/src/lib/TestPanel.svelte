@@ -20,7 +20,7 @@
     {#if showInfo}
       <ul class="help">
         <li><b>Display & phone</b>: tap them like the real thing. They share one player, so playing from the phone shows up on the display.</li>
-        <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter.</li>
+        <li><b>Volume knob</b>: drag it to turn the physical knob. The display shows an arched meter. The phone app's volume slider changes the same volume remotely, and the display says it came from the app.</li>
         <li><b>Mode knob</b>: click a position to switch between 33⅓ RPM, 45 RPM and Bluetooth. The display shows the mode. The knob locks while a record plays, and a disc-size sensor knows the speed each record needs (12″ LP = 33⅓, 7″ single = 45): at the wrong speed the needle won't drop.</li>
         <li><b>Reach for tonearm</b>: simulates a hand near the arm while the needle is down. The display asks you to tap pause instead.</li>
         <li><b>Owner profile</b>: loads one of four owners' sensor readings, collection and listening history into the phone app.</li>

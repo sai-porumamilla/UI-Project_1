@@ -1,7 +1,9 @@
 <script>
   // Companion app. Shares state with the player, so controls here move the real deck.
-  import { player, MODES, toggle, next, now } from '../player.svelte.js'
+  import { fly } from 'svelte/transition'
+  import { player, MODES, toggle, next, prev, now, setVolume, scrubStart, scrubTo, scrubEnd } from '../player.svelte.js'
   import { profiles } from '../scenarios.js'
+  import { discLabel } from '../records.js'
   import Icon from '../Icon.svelte'
   import ModeIcon from '../ModeIcon.svelte'
   import Health from './Health.svelte'
@@ -11,7 +13,38 @@
   const { record, side, track } = $derived(now())
   const mode = $derived(MODES[player.mode])
   const profile = $derived(profiles[player.profile])
+
+  let expanded = $state(false) // full Now Playing sheet, opened by tapping the mini player
+  const fmt = (s) => `${Math.floor(s / 60)}:${String(Math.floor(Math.max(0, s) % 60)).padStart(2, '0')}`
+  const songPct = $derived(((player.time - track.start) / (track.end - track.start)) * 100)
+  const upNext = $derived.by(() => {
+    if (player.trackIndex < side.last) return `Up next: ${record.tracks[player.trackIndex + 1].title}`
+    const after = record.sides[player.sideIndex + 1]
+    if (!after) return `Last song on ${record.title}`
+    return `Last song on Side ${side.name}. ${after.disc === side.disc ? 'Flip' : 'Swap in Disc ' + after.disc} for Side ${after.name}.`
+  })
 </script>
+
+<!-- pointerup can land anywhere (and the display may not be on screen), so drop the needle from here too -->
+<svelte:window onkeydown={(e) => e.key === 'Escape' && (expanded = false)} onpointerup={scrubEnd} />
+
+{#snippet volume()}
+  <!-- remote volume for the player's speakers -->
+  <div class="vol" role="group" aria-label="Speaker volume">
+    <button onclick={() => setVolume(player.volume - 5, 'phone')} aria-label="Volume down"><Icon name="volDown" size={20} /></button>
+    <input
+      type="range"
+      min="0"
+      max="100"
+      value={player.volume}
+      oninput={(e) => setVolume(+e.currentTarget.value, 'phone')}
+      style:--pct="{player.volume}%"
+      aria-label="Speaker volume"
+    />
+    <button onclick={() => setVolume(player.volume + 5, 'phone')} aria-label="Volume up"><Icon name="volUp" size={20} /></button>
+    <span class="v">{player.volume}</span>
+  </div>
+{/snippet}
 
 <div class="phone">
   <div class="status"><span>9:41</span><span class="notch"></span><span>5G ▮</span></div>
@@ -36,12 +69,17 @@
   {/if}
 
   <div class="now">
-    <img src={record.artwork} alt="" />
-    <div class="txt"><b>{track.title}</b><span>{record.artist} · Side {side.name}</span></div>
-    <button onclick={toggle} aria-label={player.playing ? 'Pause' : 'Play'}><Icon name={player.playing ? 'pause' : 'play'} /></button>
-    <button onclick={next} aria-label="Next"><Icon name="next" /></button>
+    <button class="open" onclick={() => (expanded = true)} aria-expanded={expanded} aria-label="Show what's playing">
+      <img src={record.artwork} alt="" />
+      <span class="txt"><b>{track.title}</b><span>{record.artist} · Side {side.name}</span></span>
+    </button>
+    <button class="ctl" onclick={prev} aria-label="Previous"><Icon name="prev" /></button>
+    <button class="ctl" onclick={toggle} aria-label={player.playing ? 'Pause' : 'Play'}><Icon name={player.playing ? 'pause' : 'play'} /></button>
+    <button class="ctl" onclick={next} aria-label="Next"><Icon name="next" /></button>
     <div class="prog" style:width="{((player.time - side.start) / (side.end - side.start)) * 100}%"></div>
   </div>
+
+  {@render volume()}
 
   <main>
     {#if tab === 'health'}
@@ -50,6 +88,42 @@
       <Library {profile} />
     {/if}
   </main>
+
+  {#if expanded}
+    <section class="sheet" transition:fly={{ y: 500, duration: 300 }} aria-label="Now playing">
+      <button class="collapse" onclick={() => (expanded = false)} aria-label="Collapse"><Icon name="chevronDown" size={30} /></button>
+      <img class="big-art" src={record.artwork} alt="{record.title} cover" />
+      <h2>{track.title}</h2>
+      <p class="sub">{record.artist} — {record.title}</p>
+      <p class="meta">Side {side.name} · Song {player.trackIndex - side.first + 1} of {side.last - side.first + 1} · {discLabel(record)} · {mode.label}</p>
+      <!-- scrubbing here moves the player's tonearm (lift, swing, drop), same as on the display -->
+      <input
+        class="song-bar"
+        type="range"
+        min={track.start}
+        max={track.end}
+        step="0.1"
+        value={player.time}
+        onpointerdown={scrubStart}
+        oninput={(e) => scrubTo(Math.min(+e.currentTarget.value, track.end - 0.5))}
+        onchange={scrubEnd}
+        style:--pct="{songPct}%"
+        aria-label="Scrub through {track.title}"
+      />
+      <div class="song-times">
+        <span>{fmt(player.time - track.start)}</span>
+        {#if player.arm.cueing}<span class="cueing">Moving the needle…</span>{/if}
+        <span>-{fmt(track.end - player.time)}</span>
+      </div>
+      <div class="transport">
+        <button onclick={prev} aria-label="Previous"><Icon name="prev" size={32} /></button>
+        <button class="big" onclick={toggle} aria-label={player.playing ? 'Pause' : 'Play'}><Icon name={player.playing ? 'pause' : 'play'} size={34} /></button>
+        <button onclick={next} aria-label="Next"><Icon name="next" size={32} /></button>
+      </div>
+      {@render volume()}
+      <p class="up-next">{upNext}</p>
+    </section>
+  {/if}
 
   <nav>
     <button class:on={tab === 'health'} onclick={() => (tab = 'health')}>
@@ -65,6 +139,7 @@
 
 <style>
   .phone {
+    position: relative;
     width: 380px;
     aspect-ratio: 1 / 1.41;
     display: flex;
@@ -135,6 +210,15 @@
     background: #1c1c22;
     overflow: hidden;
   }
+  .open {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0;
+    text-align: left;
+  }
   .now img {
     width: 40px;
     border-radius: 6px;
@@ -162,12 +246,175 @@
     font: inherit;
     cursor: pointer;
   }
-  .now button {
+  .ctl {
+    flex-shrink: 0;
     display: grid;
     place-items: center;
     width: 36px;
     height: 36px;
     border-radius: 50%;
+  }
+  .sheet {
+    position: absolute;
+    inset: 34px 0 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 0 24px 18px;
+    background: linear-gradient(180deg, color-mix(in oklab, var(--art-color) 60%, #111114), #111114 75%);
+    text-align: center;
+  }
+  .sheet > * {
+    flex-shrink: 0; /* overflow:hidden on the title would otherwise let it collapse */
+  }
+  .collapse {
+    display: grid;
+    place-items: center;
+    width: 44px;
+    height: 34px;
+    color: rgba(255, 255, 255, 0.8);
+  }
+  .big-art {
+    width: 180px;
+    margin: 2px 0 12px;
+    border-radius: 10px;
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.5);
+  }
+  .sheet h2 {
+    margin: 0;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    font-size: 21px;
+  }
+  .sub {
+    margin-top: 2px;
+    font-size: 14px;
+    color: #d4d4d8;
+  }
+  .meta {
+    margin-top: 4px;
+    font-size: 11px;
+    color: #a1a1aa;
+  }
+  .song-bar {
+    align-self: stretch;
+    height: 4px;
+    margin: 18px 0 0;
+    appearance: none;
+    border-radius: 2px;
+    background: linear-gradient(90deg, #fff var(--pct), rgba(255, 255, 255, 0.2) var(--pct));
+    cursor: pointer;
+  }
+  .song-bar::-webkit-slider-thumb {
+    appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .song-bar::-moz-range-thumb {
+    width: 14px;
+    height: 14px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .cueing {
+    color: #fff;
+  }
+  .song-times {
+    align-self: stretch;
+    display: flex;
+    justify-content: space-between;
+    margin-top: 4px;
+    font-size: 11px;
+    color: #a1a1aa;
+    font-variant-numeric: tabular-nums;
+  }
+  .transport {
+    display: flex;
+    align-items: center;
+    gap: 28px;
+    margin-top: 4px;
+  }
+  .transport button {
+    display: grid;
+    place-items: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+  }
+  .transport .big {
+    width: 62px;
+    height: 62px;
+    background: #fff;
+    color: #000;
+  }
+  .sheet .vol {
+    align-self: stretch;
+    margin: 12px 0 0;
+  }
+  .up-next {
+    margin-top: 12px;
+    font-size: 12px;
+    color: #d4d4d8;
+  }
+  .vol {
+    --fill: color-mix(in oklab, var(--art-color), white 45%); /* follows the artwork */
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 8px 14px 0;
+    padding: 4px 10px 4px 4px;
+    border-radius: 14px;
+    background: #1c1c22;
+  }
+  @supports (color: oklch(from red l c h)) {
+    .vol {
+      --fill: oklch(from var(--art-color) 0.75 0.12 h);
+    }
+  }
+  .vol button {
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    color: #d4d4d8;
+  }
+  .vol button:active {
+    background: rgba(255, 255, 255, 0.1);
+  }
+  .vol input {
+    flex: 1;
+    height: 6px;
+    appearance: none;
+    border-radius: 3px;
+    background: linear-gradient(90deg, var(--fill) var(--pct), #3a3a44 var(--pct));
+    cursor: pointer;
+  }
+  .vol input::-webkit-slider-thumb {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .vol input::-moz-range-thumb {
+    width: 18px;
+    height: 18px;
+    border: 0;
+    border-radius: 50%;
+    background: #fff;
+  }
+  .v {
+    width: 26px;
+    text-align: right;
+    font-size: 13px;
+    font-variant-numeric: tabular-nums;
+    color: #d4d4d8;
   }
   .prog {
     position: absolute;

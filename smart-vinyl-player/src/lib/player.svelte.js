@@ -231,14 +231,18 @@ export async function putOn(recordIndex, sideIndex) {
 // --- Physical inputs (simulated from the testing panel) ---
 
 /** Tell the display to show a knob overlay (a fresh object each time re-triggers it). */
-function flash(kind) {
-  player.knob = { kind }
+function flash(kind, from = 'knob') {
+  player.knob = { kind, from }
 }
 
-export function setVolume(v) {
+/**
+ * Speaker volume, from the physical knob or remotely from the phone ('phone'). The knob is an
+ * endless encoder with an LED ring, so a remote change never fights the knob's position.
+ */
+export function setVolume(v, from = 'knob') {
   player.volume = Math.max(0, Math.min(100, Math.round(v)))
   audio.volume = player.volume / 100
-  flash('volume')
+  flash('volume', from)
 }
 
 /** The speed knob locks while the needle is on the record. */
