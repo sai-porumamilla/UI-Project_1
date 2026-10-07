@@ -220,7 +220,7 @@
 
 <style>
   .screen {
-    --glow: #3987e5;
+    --glow: color-mix(in oklab, var(--art-color), white 35%); /* follows the artwork */
     position: relative;
     width: 720px;
     aspect-ratio: 1.41;
@@ -594,6 +594,11 @@
   @keyframes pulse {
     50% {
       box-shadow: 0 0 0 10px rgba(255, 255, 255, 0.25);
+    }
+  }
+  @supports (color: oklch(from red l c h)) {
+    .screen {
+      --glow: oklch(from var(--art-color) 0.72 0.13 h);
     }
   }
 </style>

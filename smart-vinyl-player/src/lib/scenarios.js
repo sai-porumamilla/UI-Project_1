@@ -46,8 +46,8 @@ const gemini = { title: 'Gemini Rights', artist: 'Steve Lacy', year: 2022 }
 
 export const profiles = [
   {
-    name: 'Maya',
-    blurb: 'Audiophile collector, dedicated listening room',
+    name: 'Audiophile collector',
+    blurb: 'Dedicated listening room',
     readings: { speed: 0.1, stylus: 4, air: 6, vibration: 0.3, clipping: 0, tonearm: 0.2 },
     stylusLife: [310, 1000],
     records: [
@@ -65,8 +65,8 @@ export const profiles = [
     heat: heatmap([20, 22], 1.6, 6, 1),
   },
   {
-    name: 'Jordan',
-    blurb: 'College dorm, player shares a desk with a subwoofer',
+    name: 'College dorm',
+    blurb: 'Player shares a desk with a subwoofer',
     readings: { speed: 0.5, stylus: 38, air: 41, vibration: 2.2, clipping: 2, tonearm: 0.6 },
     stylusLife: [520, 1000],
     records: [
@@ -81,8 +81,8 @@ export const profiles = [
     heat: heatmap([23, 1], 1.2, 5, 2),
   },
   {
-    name: 'Sam',
-    blurb: 'First turntable, weekend afternoon listener',
+    name: 'First turntable',
+    blurb: 'Weekend afternoon listener',
     readings: { speed: 0.4, stylus: 12, air: 18, vibration: 0.8, clipping: 1, tonearm: 0.9 },
     stylusLife: [40, 1000],
     records: [
@@ -95,8 +95,8 @@ export const profiles = [
     heat: heatmap([14, 16], 3, 2, 3),
   },
   {
-    name: 'Pat',
-    blurb: 'Inherited player, set up in a garage workshop',
+    name: 'Inherited player',
+    blurb: 'Set up in a garage workshop',
     readings: { speed: 1.9, stylus: 70, air: 62, vibration: 1.2, clipping: 14, tonearm: 2.4 },
     stylusLife: [940, 1000],
     records: [

@@ -24,6 +24,7 @@ export const records = [
     title: 'Ctrl',
     artist: 'SZA',
     size: 12, // inches: double LP
+    color: '#26482b', // dominant artwork color (the grass): drives the UI accent
     src: audio('ctrl.m4a'),
     artwork: 'https://is1-ssl.mzstatic.com/image/thumb/Music124/v4/a2/bc/ad/a2bcad46-b389-4be1-8bac-5a0959b0b8e4/886446548449.jpg/600x600bb.jpg',
     length: '48:53',
@@ -48,6 +49,7 @@ export const records = [
     title: 'The Lo-Fis',
     artist: 'Steve Lacy',
     size: 12,
+    color: '#84553a', // warm clay brown
     src: audio('the-lo-fis.m4a'),
     artwork: 'https://cdn-images.dzcdn.net/images/cover/aab27852a05351552e9dcacdbb14ec3a/500x500-000000-80-0-0.jpg',
     length: '25:22',

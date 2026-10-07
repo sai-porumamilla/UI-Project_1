@@ -18,7 +18,7 @@
 
   <header>
     <div>
-      <p class="hi">{profile.name}'s turntable</p>
+      <p class="hi">My turntable</p>
       <p class="conn"><span class="dot"></span> Connected · <ModeIcon id={mode.id} size={12} /> {mode.label} · Vol {player.volume}</p>
     </div>
   </header>

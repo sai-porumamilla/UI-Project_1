@@ -3,8 +3,11 @@
   import PlayerDisplay from './lib/display/PlayerDisplay.svelte'
   import PhoneApp from './lib/phone/PhoneApp.svelte'
   import TestPanel from './lib/TestPanel.svelte'
+  import { now } from './lib/player.svelte.js'
 
   let view = $state('display')
+  // Buttons take their color from the artwork of the record on the platter.
+  $effect(() => document.documentElement.style.setProperty('--art-color', now().record.color))
   const showDisplay = $derived(view !== 'phone')
   const showPhone = $derived(view !== 'display')
   const tag = {
@@ -96,7 +99,7 @@
   }
   .switch button.on {
     background: var(--accent);
-    color: #fff;
+    color: var(--on-accent);
   }
   .page.both {
     width: 1240px;

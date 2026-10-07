@@ -1,12 +1,22 @@
+/* The accent follows the record on the platter: App.svelte sets --art-color from
+   records.js. Registering it lets the whole page fade to the new color on a swap. */
+@property --art-color {
+  syntax: '<color>';
+  inherits: true;
+  initial-value: #26482b;
+}
+
 :root {
   --text: #6b6375;
   --text-h: #08060d;
   --bg: #fff;
   --panel: #faf9fb;
   --border: #e5e4e7;
-  --accent: #aa3bff;
-  --accent-bg: rgba(170, 59, 255, 0.1);
+  --accent: var(--art-color);
+  --accent-bg: color-mix(in oklab, var(--art-color) 12%, transparent);
+  --on-accent: #fff;
 
+  transition: --art-color 0.8s ease;
   font: 15px/1.45 system-ui, sans-serif;
   color-scheme: light dark;
   color: var(--text);
@@ -21,8 +31,23 @@
     --bg: #16171d;
     --panel: #1c1d24;
     --border: #2e303a;
-    --accent: #c084fc;
-    --accent-bg: rgba(192, 132, 252, 0.15);
+    --accent: color-mix(in oklab, var(--art-color), white 50%);
+    --accent-bg: color-mix(in oklab, var(--art-color) 25%, transparent);
+    --on-accent: #111;
+  }
+}
+
+/* Keep the artwork's hue but pin lightness/chroma so text and buttons stay readable. */
+@supports (color: oklch(from red l c h)) {
+  :root {
+    --accent: oklch(from var(--art-color) 0.5 0.12 h);
+    --accent-bg: oklch(from var(--art-color) 0.5 0.12 h / 0.12);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --accent: oklch(from var(--art-color) 0.8 0.11 h);
+      --accent-bg: oklch(from var(--art-color) 0.8 0.11 h / 0.16);
+    }
   }
 }
 

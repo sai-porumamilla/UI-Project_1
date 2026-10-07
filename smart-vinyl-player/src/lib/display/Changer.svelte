@@ -206,7 +206,7 @@
   }
   .next {
     box-shadow: inset 0 0 0 2px var(--glow);
-    background: rgba(57, 135, 229, 0.18);
+    background: color-mix(in oklab, var(--glow) 18%, transparent);
   }
   .letter {
     display: grid;
