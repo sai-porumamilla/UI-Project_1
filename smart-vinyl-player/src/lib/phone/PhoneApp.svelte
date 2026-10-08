@@ -1,13 +1,14 @@
 <script>
   // Companion app. Shares state with the player, so controls here move the real deck.
   import { fly } from 'svelte/transition'
-  import { player, MODES, toggle, next, prev, now, setVolume, scrubStart, scrubTo, scrubEnd } from '../player.svelte.js'
+  import { player, MODES, toggle, next, prev, now, setVolume, scrubStart, scrubTo, scrubEnd, openChanger } from '../player.svelte.js'
   import { profiles } from '../scenarios.js'
   import { discLabel } from '../records.js'
   import Icon from '../Icon.svelte'
   import ModeIcon from '../ModeIcon.svelte'
   import Health from './Health.svelte'
   import Library from './Library.svelte'
+  import PhonePicker from './PhonePicker.svelte'
 
   let tab = $state('health')
   const { record, side, track } = $derived(now())
@@ -56,16 +57,12 @@
     </div>
   </header>
 
-  {#if player.sideDone || player.swap}
-    <!-- push notification from the player -->
-    <div class="notice" role="status">
+  {#if player.sideDone && !player.changer && !player.swap}
+    <!-- push notification from the player; the picker itself was dismissed with "Not now" -->
+    <button class="notice" onclick={openChanger}>
       <ModeIcon id="33" size={18} />
-      {#if player.swap}
-        <span>{player.swap.phase === 'place' ? 'Changing the record…' : 'New side detected on the player'}</span>
-      {:else}
-        <span><b>Side {side.name} is over.</b> Choose what to put on next on the player.</span>
-      {/if}
-    </div>
+      <span><b>Side {side.name} is over.</b> Tap to flip, swap discs or pick a new album.</span>
+    </button>
   {/if}
 
   <div class="now">
@@ -92,6 +89,7 @@
   {#if expanded}
     <section class="sheet" transition:fly={{ y: 500, duration: 300 }} aria-label="Now playing">
       <button class="collapse" onclick={() => (expanded = false)} aria-label="Collapse"><Icon name="chevronDown" size={30} /></button>
+      <button class="side-chip" onclick={openChanger} aria-label="Change side or record">Side {side.name} ⇄</button>
       <img class="big-art" src={record.artwork} alt="{record.title} cover" />
       <h2>{track.title}</h2>
       <p class="sub">{record.artist} — {record.title}</p>
@@ -123,6 +121,10 @@
       {@render volume()}
       <p class="up-next">{upNext}</p>
     </section>
+  {/if}
+
+  {#if player.changer || player.swap}
+    <PhonePicker />
   {/if}
 
   <nav>
@@ -189,6 +191,7 @@
     background: #0ca30c;
   }
   .notice {
+    text-align: left;
     display: flex;
     align-items: center;
     gap: 8px;
@@ -266,6 +269,16 @@
   }
   .sheet > * {
     flex-shrink: 0; /* overflow:hidden on the title would otherwise let it collapse */
+  }
+  .side-chip {
+    position: absolute;
+    top: 6px;
+    right: 14px;
+    padding: 4px 10px;
+    border-radius: 999px;
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.3);
+    font-size: 11px;
+    color: #e4e4e7;
   }
   .collapse {
     display: grid;
